@@ -1,0 +1,12 @@
+**/venv/**
+**/__pycache__/**
+**/images_raw/**
+**/manual/images/**
+**/configs/**
+.vscode
+.esphome
+*.aux
+*.log
+*.gz
+*.toc
+*.out
