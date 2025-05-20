@@ -67,7 +67,7 @@ text_sensor:
     id: fetap_rotary_sensor
     name: fetap_rotary_sensor
     dial_pin: GPIO7
-    # Timeout to wait for follow-up digits before publishing the dialed number
+    # Timeout (in milliseconds) to wait for follow-up digits before publishing the dialed number
     # Defaults to 0 if not set for fastest response.
     dial_timeout: 3000
     # This automation resets the dial sensor state to -1 approx. 1 second after
