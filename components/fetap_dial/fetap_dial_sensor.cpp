@@ -1,6 +1,7 @@
 #include "fetap_dial_sensor.h"
 
 #include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -10,16 +11,22 @@ static const char *const TAG = "fetap.dialsensor";
 static const size_t TASK_STACK_SIZE = 2048;
 static const ssize_t TASK_PRIORITY = 22;
 
+static TimerHandle_t timer_handle;
 static SemaphoreHandle_t rotary_dial_sampling_semaphore;
 static TickType_t t_rotary_dial_interrupt;
+static bool dialing_timeout_flag = false;
 
-static void IRAM_ATTR rotary_dial_sensor_isr_handler(void* arg)
-{
+static void IRAM_ATTR rotary_dial_sensor_isr_handler(void* arg) {
     // Unlock task loop if we are currently not sampling
     if(t_rotary_dial_interrupt == 0) {
         t_rotary_dial_interrupt = xTaskGetTickCountFromISR();
         xSemaphoreGiveFromISR(rotary_dial_sampling_semaphore, NULL);
     }
+}
+
+static void timer_publish_handler(TimerHandle_t timer) {
+    dialing_timeout_flag = true;
+    xSemaphoreGive(rotary_dial_sampling_semaphore);
 }
 
 void FetapDialSensor::setup() {
@@ -66,6 +73,10 @@ void FetapDialSensor::setup() {
     rotary_dial_sampling_semaphore = xSemaphoreCreateBinary();
     xSemaphoreTake(rotary_dial_sampling_semaphore, 0);
 
+    if (dial_timeout_) {
+        timer_handle = xTimerCreate("dial_publish_timer", pdMS_TO_TICKS(dial_timeout_), pdFALSE, (void *) 0, timer_publish_handler);
+    }
+
     // Start dial task
     xTaskCreate(FetapDialSensor::dial_task, "fetapdial_task", TASK_STACK_SIZE, (void *) this, TASK_PRIORITY,
                 &task_handle_);
@@ -85,15 +96,21 @@ void FetapDialSensor::task_loop(void) {
     // Set last interrupt time to 0 to signal that we are currently not sampling
     t_rotary_dial_interrupt = 0;
     
-    // Wait until user starts dialing a number. This will trigger the previously 
+    // Wait until user starts dialing a number or a timeout is triggered from a
+    // previously dialed number. If a number was dialed, this will trigger the 
     // registered interrupt since the DIAL pin will be pulled up as soon as the
     // rotary dial contact opens. The interrupt will set t_rotary_dial_interrupt
     // to the time where the positive edge of the first impulse was detected and
     // unlock the semaphore so that the task can start with sampling.
     xSemaphoreTake(rotary_dial_sampling_semaphore, portMAX_DELAY);
 
-    // Sample the DIAL pin to determine the number that was dialed
-    sample_rotary_dial();
+    if (dialing_timeout_flag) {
+        // User stopped dialing in digits. Publish the complete number.
+        publish_number();
+    } else {
+        // User dialed a new digit. Sample the DIAL pin to determine the digit that was dialed
+        sample_rotary_dial();
+    }
     
     // Wait minimum time until next number can be dialed in
     vTaskDelay(pdMS_TO_TICKS(kNumberDialGapMilliseconds));
@@ -135,11 +152,29 @@ void FetapDialSensor::sample_rotary_dial(void) {
         return;
     }
 
-    // Convert pulses to the dialed number as UTF-8 character
-    const char dialed_number = ((counter + 1) % 10) + 0x30;
+    // Convert pulses to the dialed digit as UTF-8 character
+    const char dialed_digit = ((counter + 1) % 10) + 0x30;
 
-    // Publish that character as the new state
-    publish_state(std::string(1, dialed_number));
+    // Add new digit to number
+    dialed_number_ += std::string(1, dialed_digit);
+
+    if (dial_timeout_) {
+        // Non-zero timeout is configured. Start timer to wait
+        // for potential follow-up digits
+        xTimerReset(timer_handle, 0);
+    } else {
+        // No timeout configured. Directly publish digit as state
+        publish_number();
+    }
+}
+
+void FetapDialSensor::publish_number(void) {
+    // Publish dialed number as new state
+    publish_state(dialed_number_);
+    // Reset dialed number
+    dialed_number_.clear();
+    // Reset timeout flag
+    dialing_timeout_flag = false;
 }
 
 }

@@ -30,6 +30,13 @@ public:
     */
     void set_dial_pin(int pin) { dial_pin_ = static_cast<gpio_num_t>(pin); }
 
+    /*
+        Sets the time to wait for another number before publishing a new state
+
+        \param  timeout_ms  The time to wait in milliseconds
+    */
+    void set_dial_timeout(int timeout_ms) {dial_timeout_ = static_cast<uint32_t>(timeout_ms); }
+
 private:
 
     /*
@@ -54,15 +61,23 @@ private:
     */
     void sample_rotary_dial(void);
 
+    /*
+        Publishes the complete dialed number
+    */
+    void publish_number(void);
+
     static constexpr uint16_t kPulseOpenMilliseconds{60}; /*!< Duration for which the sensor contact is open during each pulse */
     static constexpr uint16_t kPulseClosedMilliseconds{40}; /*!< Duration for which the sensor contact is closed during each pulse */
     static constexpr uint16_t kNumberDialGapMilliseconds{(kPulseOpenMilliseconds + kPulseClosedMilliseconds) * 2}; /*!< Minimum possible time between two consecutive dialed numbers */
     static constexpr uint16_t kSamplesPerPulse{6}; /*!< Number of times the sensor pin is sampled during the conact open period of a pulse */
-    static constexpr uint16_t kSampleDelayMilliseconds{kPulseOpenMilliseconds / kSamplesPerPulse}; /*!< // Delay between samples when the sensor contact is open */
-    
+    static constexpr uint16_t kSampleDelayMilliseconds{kPulseOpenMilliseconds / kSamplesPerPulse}; /*!< Delay between samples when the sensor contact is open */
+    static constexpr uint32_t kDefaultDialTimeoutMilliseconds{0}; /*!< The default time to wait for another number to be dialed before publishing the new state */
+
     // The pulse open period needs to be divisable by the number of samples per pulse.
     static_assert(kPulseOpenMilliseconds % kSamplesPerPulse == 0);
 
+    std::string dialed_number_{""}; /*!< String that holds the dialed number */
+    uint32_t dial_timeout_{kDefaultDialTimeoutMilliseconds}; /*!< Maximum time to wait for next digit before publishing */
     gpio_num_t dial_pin_{GPIO_NUM_NC}; /*!< DIAL pin of the rotary dial */
     TaskHandle_t task_handle_{nullptr}; /*!< Reference to the sensor task */
 };
