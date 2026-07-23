@@ -43,11 +43,11 @@ public:
         Read a maximum of len bytes from the I2S peripheral into buf
 
         \param  buf     Pointer to audio buffer which should be filled with data
-        \param  len     Maximum number of int32_t samples that can be written into buf
+        \param  len     Maximum number of bytes that buf can hold
 
         \returns    The number of bytes read into the audio buffer
     */
-    size_t read(int16_t *buf, size_t len) override;
+    size_t read(int16_t *buf, const size_t len);
 
     /* --------------------------- Functions triggered from code generation --------------------------- */
     
@@ -96,8 +96,7 @@ private:
     */
     void read_(void);
 
-    std::vector<int16_t> buffer_; /*!< Buffer for processed audio data */
-    std::vector<uint32_t> raw_i2s_buffer_; /*!< Buffer for raw audio data */
+    std::vector<uint8_t> buffer_; /*!< Buffer for processed audio data */
     gpio_num_t din_pin_{I2S_GPIO_UNUSED}; /*!< DIN pin of I2S bus */
     gpio_num_t bclk_pin_{I2S_GPIO_UNUSED}; /*!< BCLK pin of the I2S bus */
     gpio_num_t lrclk_pin_{I2S_GPIO_UNUSED}; /*!< LRCLK/WS pin of the I2S bus */

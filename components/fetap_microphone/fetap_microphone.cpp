@@ -47,8 +47,7 @@ void FetapMicrophone::setup(void) {
         return;
     }
 
-    buffer_.reserve(kBufferSize);
-    raw_i2s_buffer_.reserve(kBufferSize);
+    buffer_.reserve(kBufferSize*sizeof(int16_t));
 
     ESP_LOGI(TAG, "Fetap Microphone initialized successfully.");
 }
@@ -102,7 +101,7 @@ void FetapMicrophone::stop_(void) {
     ESP_LOGI(TAG, "Fetap Microphone stopped successfully.");
 }
 
-size_t FetapMicrophone::read(int16_t *buf, size_t len) {
+size_t FetapMicrophone::read(int16_t *buf, const size_t len) {
     size_t n_bytes_read{0};
 
     // The I2S RX channel config reads from the microphone with 32 bit sample width which is directly
@@ -135,9 +134,10 @@ void FetapMicrophone::read_(void) {
     // Note: In order to adhere to the esphome i2s_audio_microphone implementation,
     //       we actually pass the amount of int32 samples that can be read into the
     //       buffer_ (allocated as kBufferSize * sizeof(int16_t)).
-    const size_t bytes_read = read(buffer_.data(), kBufferSize / sizeof(int16_t));
-
-    buffer_.resize(bytes_read / sizeof(int16_t));
+    std::vector<uint8_t> buffer;
+    buffer.resize(kBufferSize*sizeof(int16_t));
+    const size_t bytes_read = read(reinterpret_cast<int16_t *>(buffer_.data()), buffer.size());
+    buffer_.resize(bytes_read);
     data_callbacks_.call(buffer_);
 }
 

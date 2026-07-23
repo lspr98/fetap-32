@@ -22,8 +22,31 @@ FeTAp-32 is an open-source project that turns an old FeTAp 611-2 (Fernsprechtisc
   <img src="doc/images/fetap32-back-round-1000.png" width="30%"/>
 </p>
 
-## Building instructions (Hardware and Software)
-The manual can be found [here](doc/manual/manual.pdf)
+## Building instructions
+### Software
+Clone this repository to your machine and open a terminal inside the cloned repository. Fill in the network credentials and OTA password in the `secrets.yaml`. Afterwards, create a virtual python environment:
+```
+python3 -m venv venv
+```
+Activate that environment:
+```
+source venv/bin/activate
+```
+Install esphome version 2020.7.1 inside the virtual environment:
+```
+pip install esphome==2026.7.1
+```
+Compile the project:
+```
+esphome compile fetap32.yaml
+```
+**Ensure that the USB-C power port at the base of the phone is unplugged.** Next, unscrew the microphone cover of your Fetap32 and connect it to your PC using the USB-C port directly on the microcontroller. Afterwards, you can flash the project onto the microcontroller by running:
+```
+esphome run fetap32.yaml
+```
+
+### Hardware
+The manual can be found [here](doc/manual/manual.pdf).
 
 ## Disclaimer and warning
 Recreating this project involves handling dangerous things like soldering irons and 3D-printers. For legal reasons, handling these things should only be done by an expert. I am not responsible for any damage to you, your telephone or your surrounding. Read through the complete manual to decide if you feel comfortable building the project.

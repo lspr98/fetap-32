@@ -4,10 +4,10 @@ from esphome.components import microphone
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
-    CONF_GPIO
+    CONF_CHANNELS
 )
 
-# DEPENDENCIES = ["microphone"]
+CONF_MAX_CHANNELS = "max_channels"
 
 CONF_I2S_LRCLK_PIN = "i2s_lrclk_pin"
 CONF_I2S_BCLK_PIN = "i2s_bclk_pin"
@@ -24,6 +24,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_I2S_LRCLK_PIN): pins.internal_gpio_output_pin_number,
         cv.Required(CONF_I2S_BCLK_PIN): pins.internal_gpio_output_pin_number,
         cv.Required(CONF_I2S_DIN_PIN): pins.internal_gpio_output_pin_number,
+        cv.Optional(CONF_MAX_CHANNELS, default=1): cv.int_,
+        cv.Optional(CONF_CHANNELS, default=1): cv.int_,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 

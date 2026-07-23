@@ -33,7 +33,8 @@ void FetapDialSensor::setup() {
     esp_err_t err;
 
     err = gpio_install_isr_service(0);
-    if (err != ESP_OK) {
+    // Note: ESP_ERR_INVALID_STATE means ISR service is already installed
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
         ESP_LOGE(TAG, "Error starting ISR service: %s", esp_err_to_name(err));
         mark_failed();
         status_set_error();
